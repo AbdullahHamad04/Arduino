@@ -1,0 +1,170 @@
+#include <Servo.h>
+Servo myservo;
+
+// ===== Pins =====
+const int Trig = 12;
+const int Echo = 13;
+
+#define ENA  5
+#define ENB  6
+#define IN1  3
+#define IN2  4
+#define IN3  2
+#define IN4  7
+
+// ===== إعدادات الحركة =====
+int carSpeed     = 140;    // سرعة الروبوت
+int centerAngle  = 100;    // زاوية الوسط (100 = تقريبًا للأمام)
+int rightAngle   = 20;     // يمين
+int leftAngle    = 160;    // يسار
+
+// ===== إعدادات التتبّع =====
+int minFollowCM  = 30;     // أقرب مسافة للتتبع
+int maxFollowCM  = 50;     // أبعد مسافة للتتبع
+int backLimitCM  = 10;     // لو أقرب من هيك → رجوع
+int farLimitCM   = 150;    // بعد هالمدى → بحث بسيط
+
+// ===== إعدادات التأخير =====
+int scanDelayMs  = 250;
+int turnMs       = 250;
+int fwdMs        = 250;
+int backMs       = 250;
+
+// ===== دوال المحركات (اتجاهات مصحّحة حسب حالتك السابقة) =====
+void stopAll(){
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+  digitalWrite(IN1,LOW); digitalWrite(IN2,LOW);
+  digitalWrite(IN3,LOW); digitalWrite(IN4,LOW);
+}
+
+void forward(){
+  analogWrite(ENA, carSpeed);
+  analogWrite(ENB, carSpeed);
+  digitalWrite(IN1, LOW);  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);  digitalWrite(IN4, HIGH);
+}
+
+void back(){
+  analogWrite(ENA, carSpeed);
+  analogWrite(ENB, carSpeed);
+  digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
+}
+
+void turnRight(){
+  analogWrite(ENA, 180);
+  analogWrite(ENB, 180);
+  digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);  digitalWrite(IN4, HIGH);
+}
+
+void turnLeft(){
+  analogWrite(ENA, 180);
+  analogWrite(ENB, 180);
+  digitalWrite(IN1, LOW);  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
+}
+
+// ===== حساس الالتراسونك =====
+long getDistanceCM(){
+  digitalWrite(Trig, LOW); delayMicroseconds(2);
+  digitalWrite(Trig, HIGH); delayMicroseconds(10);
+  digitalWrite(Trig, LOW);
+  unsigned long du = pulseIn(Echo, HIGH, 30000UL);
+  if (du == 0) return 400;
+  return (long)(du * 0.0343 / 2.0);
+}
+
+// قراءة مسافة عند زاوية معينة
+long senseAt(int angle){
+  myservo.write(angle);
+  delay(scanDelayMs);
+  return getDistanceCM();
+}
+
+// ===== الإعداد =====
+void setup(){
+  Serial.begin(9600);
+  pinMode(Trig, OUTPUT);
+  pinMode(Echo, INPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+
+  myservo.attach(A0, 700, 2400);
+  stopAll();
+  myservo.write(centerAngle);
+  delay(300);
+
+  Serial.println("🤖 Human Follow Mode (smooth, 30–50 cm range)");
+}
+
+// ===== الحلقة الرئيسية =====
+void loop(){
+  // قياس المسافة للأمام
+  long dFront = senseAt(centerAngle);
+
+  // لو الهدف بعيد جدًا → بحث بسيط يمين
+  if (dFront >= farLimitCM){
+    stopAll();
+    turnRight(); delay(300);
+    stopAll();   delay(100);
+    return;
+  }
+
+  // لو قريب جدًا (أقل من 10 سم) → رجوع خفيف
+  if (dFront > 0 && dFront < backLimitCM){
+    stopAll(); delay(60);
+    back();    delay(backMs);
+    stopAll(); delay(100);
+    return;
+  }
+
+  // مسح جانبي لمعرفة الاتجاه الأقرب
+  long dRight = senseAt(rightAngle);
+  myservo.write(centerAngle); delay(120);
+  long dLeft  = senseAt(leftAngle);
+  myservo.write(centerAngle); delay(120);
+
+  // اختيار أقصر مسافة (يعني الإنسان)
+  int bestAngle = centerAngle;
+  long bestDist = dFront;
+
+  if (dRight > 5 && dRight < bestDist) { bestDist = dRight; bestAngle = rightAngle; }
+  if (dLeft  > 5 && dLeft  < bestDist) { bestDist = dLeft;  bestAngle = leftAngle;  }
+
+  Serial.print("front="); Serial.print(dFront);
+  Serial.print("  right="); Serial.print(dRight);
+  Serial.print("  left=");  Serial.print(dLeft);
+  Serial.print("  -> best "); Serial.print(bestAngle);
+  Serial.print(" dist "); Serial.println(bestDist);
+
+  // توجيه ناعم
+  if (bestAngle == rightAngle){
+    turnRight(); delay(turnMs);
+    stopAll();   delay(80);
+  } else if (bestAngle == leftAngle){
+    turnLeft();  delay(turnMs);
+    stopAll();   delay(80);
+  }
+
+  // تتبّع سلس حسب المسافة
+  if (bestDist > maxFollowCM){
+    // الهدف بعيد → تقدّم بسلاسة
+    forward(); delay(fwdMs);
+    stopAll(); delay(60);
+  } 
+  else if (bestDist < minFollowCM && bestDist > backLimitCM){
+    // قريب أكتر من 30 سم → تراجع بسيط
+    back(); delay(backMs / 2);
+    stopAll(); delay(60);
+  } 
+  else {
+    // بين 30–50 سم → مسافة مثالية
+    stopAll(); delay(80);
+  }
+}
