@@ -1,4 +1,3 @@
-```mermaid
 flowchart TD
 
 A([Power ON]) --> B[Arduino UNO initialises sensors and L298N]
@@ -19,4 +18,3 @@ I --> B
 
 H -->|NO| J[Hold comfortable distance\nsmall forward pulses]
 J --> B
-```
