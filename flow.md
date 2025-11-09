@@ -1,39 +1,38 @@
 ```mermaid
 flowchart TD
 
-A([Start]) --> B[Initialize Arduino, sensors and motors]
-
-B --> C{Obstacle detected by IR ?}
-C -->|Yes| D[Run avoidByIR routine<br>stop / back / turn]
+A([START]) --> B[Init Arduino sensors motors]
+B --> C{IR obstacle ?}
+C -->|YES| D[avoidByIR then return]
 D --> B
 
-C -->|No| E{Mode == ACQUIRE ?}
+C -->|NO| E{Mode == ACQUIRE ?}
 
-E -->|Yes| F[Run acquire()<br>servo sweep right-center-left<br>pick best distance]
+E -->|YES| F[ACQUIRE:\nservo sweep\npick best angle]
 F --> G{acquire success ?}
-G -->|Yes| H[Set mode = FOLLOW]
+G -->|YES| H[mode=FOLLOW]
 H --> B
-G -->|No| I[Small right turn<br>then stop]
+G -->|NO| I[small right turn then stop]
 I --> B
 
-E -->|No| J[Read distance d with ultrasonic]
+E -->|NO| J[read distance d]
 
 J --> K{d < backLimit ?}
-K -->|Yes| L[Back a little then stop]
+K -->|YES| L[back small then stop]
 L --> B
 
-K -->|No| M{d >= farLimit<br>OR lost timeout<br>OR reacquire timeout ?}
-M -->|Yes| N[Set mode = ACQUIRE]
+K -->|NO| M{d >= farLimit\nOR lost timeout\nOR reacq timeout ?}
+M -->|YES| N[mode=ACQUIRE]
 N --> B
 
-M -->|No| O{d > maxFollow ?}
-O -->|Yes| P[Forward short pulse]
+M -->|NO| O{d > maxFollow ?}
+O -->|YES| P[forward pulse]
 P --> B
 
-O -->|No| Q{d < minFollow ?}
-Q -->|Yes| R[Back short pulse]
+O -->|NO| Q{d < minFollow ?}
+Q -->|YES| R[back pulse]
 R --> B
 
-Q -->|No| S[Short forward pulse inside comfort zone]
+Q -->|NO| S[small forward pulse]
 S --> B
 ```
