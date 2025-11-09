@@ -1,37 +1,37 @@
-## Flowchart (based on final code)
-
-```mermaid
 flowchart TD
-  %% --- STARTUP ---
-  A[Start / setup()] --> B[Init pins, servo center, stopAll()]
-  B --> C[Main loop]
 
-  %% --- OBSTACLE FIRST ---
-  C --> D{anyObstacle()? (IR_L / IR_F / IR_R)}
-  D -- Yes --> E[avoidByIR():\nstop → back/turn combos → stop]
-  E --> C
+A([Start]) --> B[Initialize Arduino, sensors and motors]
 
-  %% --- MODE SWITCH ---
-  D -- No --> F{mode == ACQUIRE ?}
-  F -- Yes --> G[acquire():\nsweep servo Right→Center→Left,\npick best distance/angle,\nturn toward best, update lastSeenMs]
-  G --> H{acquire() success?}
-  H -- Yes --> I[mode = FOLLOW;\nlastAcquireMs = now]
-  I --> C
-  H -- No --> J[turnRight(); delay(130);\nstopAll(); delay(30)]
-  J --> C
+B --> C{Obstacle detected by IR ?}
+C -->|Yes| D[Run avoidByIR routine<br>stop / back / turn]
+D --> B
 
-  %% --- FOLLOW MODE ---
-  F -- No --> K[distCM() → d;\nif valid update lastSeenMs]
-  K --> L{d < backLimit? (too close)}
-  L -- Yes --> M[stop → back(130ms) → stop]
-  M --> C
-  L -- No --> N{d >= farLimit\nOR now-lastSeenMs > lostTimeoutMs\nOR now-lastAcquireMs > reacquireEveryMs}
-  N -- Yes --> O[mode = ACQUIRE]
-  O --> C
-  N -- No --> P{d > maxFollow?\n(d < minFollow?)}
-  P -- d > maxFollow --> Q[forward(); delay(170);\nstopAll(); delay(10)]
-  P -- d < minFollow and > backLimit --> R[back(); delay(100);\nstopAll(); delay(10)]
-  P -- within [min..max] --> S["comfort band:\nshort forward(90ms) → stop(8ms)"]
-  Q --> C
-  R --> C
-  S --> C
+C -->|No| E{Mode == ACQUIRE ?}
+
+E -->|Yes| F[Run acquire()<br>servo sweep right-center-left<br>pick best distance]
+F --> G{acquire success ?}
+G -->|Yes| H[Set mode = FOLLOW]
+H --> B
+G -->|No| I[Small right turn<br>then stop]
+I --> B
+
+E -->|No| J[Read distance d with ultrasonic]
+
+J --> K{d < backLimit ?}
+K -->|Yes| L[Back a little then stop]
+L --> B
+
+K -->|No| M{d >= farLimit<br>OR lost timeout<br>OR reacquire timeout ?}
+M -->|Yes| N[Set mode = ACQUIRE]
+N --> B
+
+M -->|No| O{d > maxFollow ?}
+O -->|Yes| P[Forward short pulse]
+P --> B
+
+O -->|No| Q{d < minFollow ?}
+Q -->|Yes| R[Back short pulse]
+R --> B
+
+Q -->|No| S[Short forward pulse inside comfort zone]
+S --> B
