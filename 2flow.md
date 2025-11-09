@@ -1,24 +1,22 @@
 ```mermaid
 flowchart TD
 
-A([Power ON]) --> B[Arduino UNO boots\ninitialises sensors & L298N]
+A([Power ON]) --> B[Arduino UNO initialises sensors and L298N]
 
-B --> C[IR sensors (LM393)\nread for obstacles]
+B --> C{IR sensors detect obstacle ?}
+C -->|YES| D[Stop motors and execute avoid routine]
+D --> B
 
-C --> D{Obstacle detected ?}
-D -->|Yes| E[Arduino triggers avoid routine:\nstop motors → back → turn]
-E --> C
+C -->|NO| E[Measure distance to human using Ultrasonic HC-SR04]
 
-D -->|No| F[Ultrasonic HC-SR04\nmeasure distance to human]
+E --> F{Human too far ?}
+F -->|YES| G[Move FORWARD\n(PWM to L298N → 4 DC motors)]
+G --> B
 
-F --> G{Human too far ?}
-G -->|Yes| H[Arduino sends PWM to L298N\nto drive 4 DC motors forward]
-H --> C
+F -->|NO| H{Human too close ?}
+H -->|YES| I[Move BACK slightly]
+I --> B
 
-G -->|No| I{Human too close ?}
-I -->|Yes| J[Arduino commands motors\nshort reverse]
-J --> C
-
-I -->|No| K[Hold comfort distance:\nsmall forward pulses]
-K --> C
+H -->|NO| J[Hold comfortable distance\nsmall forward pulses]
+J --> B
 ```
