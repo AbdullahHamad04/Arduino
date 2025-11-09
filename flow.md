@@ -1,3 +1,4 @@
+```mermaid
 flowchart TD
 
 A([Start]) --> B[Initialize Arduino, sensors and motors]
@@ -35,3 +36,4 @@ R --> B
 
 Q -->|No| S[Short forward pulse inside comfort zone]
 S --> B
+```
