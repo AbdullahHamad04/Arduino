@@ -1,39 +1,29 @@
 ```mermaid
-flowchart LR
-  Start([start]) --> Init([initialize pins, servo center, mode = ACQUIRE])
-  Init --> Loop([main loop])
+flowchart TD
+  A([Start]) --> B([Initialize pins and servo])
+  B --> C([Set mode = ACQUIRE])
+  C --> D{Any IR obstacle?}
 
-  subgraph MainLoop
-    Loop --> CheckIR{any IR obstacle?}
-    CheckIR -- yes --> Avoid([avoidByIR → stopAll / back / turn])
-    Avoid --> Loop
+  D -- Yes --> E([Avoid obstacle using IR sensors])
+  E --> D
 
-    CheckIR -- no --> ModeCheck{mode == ACQUIRE?}
-    ModeCheck -- yes --> Acquire([acquire: servo scan R → C → L, measure distances])
-    Acquire --> Found{valid target within range?}
-    Found -- yes --> SetFollow([set mode = FOLLOW, update timers])
-    SetFollow --> Loop
-    Found -- no --> Rotate([turn right shortly])
-    Rotate --> Loop
+  D -- No --> F{Mode == ACQUIRE?}
+  F -- Yes --> G([Scan right, center, left using servo])
+  G --> H{Target found?}
+  H -- Yes --> I([Switch to FOLLOW mode])
+  H -- No --> J([Turn right slightly and retry])
+  J --> D
+  I --> D
 
-    ModeCheck -- no --> Follow([follow: read distance d])
-    Follow --> UpdateDist([update lastSeen if distance valid])
-    UpdateDist --> TooClose{d < backLimit?}
-    TooClose -- yes --> Back([move back and stop])
-    Back --> Loop
-    TooClose -- no --> Lost{d >= farLimit or timeout or reacquireDue?}
-    Lost -- yes --> SetAcquire([mode = ACQUIRE])
-    SetAcquire --> Loop
-    Lost -- no --> InRange{minFollow ≤ d ≤ maxFollow?}
-    InRange -- yes --> Gentle([gentle forward pulse])
-    Gentle --> Loop
-    InRange -- no --> TooFar{d > maxFollow?}
-    TooFar -- yes --> ForwardBurst([forward pulse])
-    TooFar -- no --> ShortBack([short back pulse])
-    ForwardBurst --> Loop
-    ShortBack --> Loop
-  end
+  F -- No --> K([Measure distance using ultrasonic])
+  K --> L{Distance check}
+  L -- Too close --> M([Move back])
+  L -- In range --> N([Move gently forward])
+  L -- Too far --> O([Move forward])
+  L -- Lost / Timeout --> P([Switch to ACQUIRE mode])
 
-  classDef decision fill:#f9f,stroke:#333,stroke-width:1px;
-  class CheckIR,ModeCheck,Found,TooClose,Lost,InRange,TooFar decision;
+  M --> D
+  N --> D
+  O --> D
+  P --> D
 ```
