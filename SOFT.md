@@ -1,3 +1,4 @@
+```mermaid
 flowchart LR
   Start([start]) --> Init([initialize pins, servo center, mode = ACQUIRE])
   Init --> Loop([main loop])
@@ -12,7 +13,7 @@ flowchart LR
     Acquire --> Found{valid target within range?}
     Found -- yes --> SetFollow([set mode = FOLLOW\nlastSeen = now\nlastAcquire = now])
     SetFollow --> Loop
-    Found -- no --> Rotate([turnRight short] )
+    Found -- no --> Rotate([turnRight short])
     Rotate --> Loop
 
     ModeCheck -- no --> Follow([follow(): read front distance d])
@@ -35,3 +36,4 @@ flowchart LR
 
   classDef decision fill:#f9f,stroke:#333,stroke-width:1px;
   class CheckIR,ModeCheck,Found,TooClose,Lost,InRange,TooFar decision;
+```
