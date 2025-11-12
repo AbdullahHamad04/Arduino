@@ -5,31 +5,31 @@ flowchart LR
 
   subgraph MainLoop
     Loop --> CheckIR{any IR obstacle?}
-    CheckIR -- yes --> Avoid([avoidByIR() -> stopAll/back/turn])
+    CheckIR -- yes --> Avoid([avoidByIR → stopAll / back / turn])
     Avoid --> Loop
 
     CheckIR -- no --> ModeCheck{mode == ACQUIRE?}
-    ModeCheck -- yes --> Acquire([acquire(): servo scan R → C → L\nmeasure distances, decide best angle])
+    ModeCheck -- yes --> Acquire([acquire: servo scan R → C → L, measure distances])
     Acquire --> Found{valid target within range?}
-    Found -- yes --> SetFollow([set mode = FOLLOW\nlastSeen = now\nlastAcquire = now])
+    Found -- yes --> SetFollow([set mode = FOLLOW, update timers])
     SetFollow --> Loop
-    Found -- no --> Rotate([turnRight short])
+    Found -- no --> Rotate([turn right shortly])
     Rotate --> Loop
 
-    ModeCheck -- no --> Follow([follow(): read front distance d])
-    Follow --> UpdateDist([update lastSeen if d valid])
+    ModeCheck -- no --> Follow([follow: read distance d])
+    Follow --> UpdateDist([update lastSeen if distance valid])
     UpdateDist --> TooClose{d < backLimit?}
-    TooClose -- yes --> Back([back + stop])
+    TooClose -- yes --> Back([move back and stop])
     Back --> Loop
     TooClose -- no --> Lost{d >= farLimit or timeout or reacquireDue?}
     Lost -- yes --> SetAcquire([mode = ACQUIRE])
     SetAcquire --> Loop
-    Lost -- no --> InRange{minFollow <= d <= maxFollow?}
-    InRange -- yes --> Gentle([gentle forward pulses])
+    Lost -- no --> InRange{minFollow ≤ d ≤ maxFollow?}
+    InRange -- yes --> Gentle([gentle forward pulse])
     Gentle --> Loop
     InRange -- no --> TooFar{d > maxFollow?}
     TooFar -- yes --> ForwardBurst([forward pulse])
-    TooFar -- no --> ShortBack([small back pulse])
+    TooFar -- no --> ShortBack([short back pulse])
     ForwardBurst --> Loop
     ShortBack --> Loop
   end
